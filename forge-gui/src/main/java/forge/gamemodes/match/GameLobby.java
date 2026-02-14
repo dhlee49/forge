@@ -42,6 +42,7 @@ public abstract class GameLobby implements IHasGameType {
 
     private final boolean allowNetworking;
     private HostedMatch hostedMatch;
+    protected HostedMatch getHostedMatch() { return hostedMatch; }
     private final HashMap<LobbySlot, IGameController> gameControllers = Maps.newHashMap();
     protected GameLobby(final boolean allowNetworking) {
         this.allowNetworking = allowNetworking;

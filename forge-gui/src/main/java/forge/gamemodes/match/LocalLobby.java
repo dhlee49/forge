@@ -5,7 +5,7 @@ import forge.gui.interfaces.IGuiGame;
 
 import java.util.Collections;
 
-public final class LocalLobby extends GameLobby {
+public class LocalLobby extends GameLobby {
 
     private IGuiGame gui = null;
     public LocalLobby() {

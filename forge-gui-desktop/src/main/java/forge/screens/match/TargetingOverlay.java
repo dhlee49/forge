@@ -258,7 +258,11 @@ public class TargetingOverlay {
         cardsVisualized.clear();
 
         try {
-            switch (matchUI.getCDock().getArcState()) {
+            final ArcState currentArcState = matchUI.getCDock().getArcState();
+            if (currentArcState == null) {
+                return true; // Not yet initialized, skip drawing arcs
+            }
+            switch (currentArcState) {
                 case OFF:
                     return true;
                 case MOUSEOVER:
