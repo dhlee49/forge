@@ -42,7 +42,7 @@ public abstract class GameLobby implements IHasGameType {
 
     private final boolean allowNetworking;
     private HostedMatch hostedMatch;
-    protected HostedMatch getHostedMatch() { return hostedMatch; }
+    public HostedMatch getHostedMatch() { return hostedMatch; }
     private final HashMap<LobbySlot, IGameController> gameControllers = Maps.newHashMap();
     protected GameLobby(final boolean allowNetworking) {
         this.allowNetworking = allowNetworking;
@@ -54,10 +54,6 @@ public abstract class GameLobby implements IHasGameType {
 
     public final boolean isMatchActive() {
         return hostedMatch != null && hostedMatch.isMatchOver() == false;
-    }
-
-    public HostedMatch getHostedMatch() {
-        return hostedMatch;
     }
 
     public void setListener(final IUpdateable listener) {
