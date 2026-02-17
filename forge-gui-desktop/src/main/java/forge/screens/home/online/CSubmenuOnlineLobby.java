@@ -8,14 +8,18 @@ import java.util.Objects;
 import javax.swing.JMenu;
 import javax.swing.SwingUtilities;
 
+import forge.gamemodes.match.HostedMatch;
 import forge.gamemodes.net.ChatMessage;
 import forge.gamemodes.net.NetConnectUtil;
+import forge.gamemodes.net.server.CommanderServerGameLobby;
 import forge.gui.FNetOverlay;
 import forge.gui.FThreads;
+import forge.gui.GuiBase;
 import forge.gui.SOverlayUtils;
 import forge.gui.error.BugReporter;
 import forge.gui.framework.EDocID;
 import forge.gui.framework.ICDoc;
+import forge.gui.interfaces.IGuiGame;
 import forge.gui.util.SOptionPane;
 import forge.localinstance.properties.ForgeConstants;
 import forge.menus.IMenuProvider;
@@ -24,6 +28,7 @@ import forge.screens.home.CHomeUI;
 import forge.screens.home.CLobby;
 import forge.screens.home.VLobby;
 import forge.screens.home.sanctioned.ConstructedGameMenu;
+import forge.screens.match.commander.CommanderSpectatorController;
 import forge.toolbox.FOptionPane;
 import forge.util.Localizer;
 
@@ -75,6 +80,53 @@ public enum CSubmenuOnlineLobby implements ICDoc, IMenuProvider {
             if (CHomeUI.SINGLETON_INSTANCE.getCurrentDocID() == EDocID.HOME_NETWORK) {
                 VSubmenuOnlineLobby.SINGLETON_INSTANCE.populate();
             }
+            NetConnectUtil.copyHostedServerUrl();
+        });
+    }
+
+    void hostCommander() {
+        FThreads.invokeInBackgroundThread(() -> {
+            try {
+                doHostCommander();
+            } catch (Exception ex) {
+                if (ex.getClass() == java.net.BindException.class) {
+                    SOptionPane.showErrorDialog(Localizer.getInstance().getMessage("lblUnableStartServerPortAlreadyUse"));
+                    SOverlayUtils.hideOverlay();
+                } else {
+                    BugReporter.reportException(ex);
+                }
+            }
+        });
+    }
+
+    private void doHostCommander() {
+        SwingUtilities.invokeLater(() -> {
+            SOverlayUtils.startGameOverlay(Localizer.getInstance().getMessage("lblStartingServer"));
+            SOverlayUtils.showOverlay();
+        });
+
+        final NetConnectUtil.HostCommanderResult result = NetConnectUtil.hostCommander(
+                VSubmenuOnlineLobby.SINGLETON_INSTANCE, FNetOverlay.SINGLETON_INSTANCE);
+
+        final CommanderServerGameLobby commanderLobby = result.getLobby();
+        commanderLobby.setGameStartedCallback(() -> {
+            final HostedMatch match = commanderLobby.getHostedMatch();
+            if (match != null) {
+                final IGuiGame spectatorGui = GuiBase.getInterface().getNewGuiGame();
+                final CommanderSpectatorController ctrl =
+                        new CommanderSpectatorController(match.getGame(), spectatorGui);
+                ctrl.setPlayerControllers(match.getHumanControllers());
+                match.registerSpectator(spectatorGui, ctrl);
+            }
+        });
+
+        SwingUtilities.invokeLater(() -> {
+            SOverlayUtils.hideOverlay();
+            FNetOverlay.SINGLETON_INSTANCE.show(result.getChatMessage());
+            if (CHomeUI.SINGLETON_INSTANCE.getCurrentDocID() == EDocID.HOME_NETWORK) {
+                VSubmenuOnlineLobby.SINGLETON_INSTANCE.populate();
+            }
+
             NetConnectUtil.copyHostedServerUrl();
         });
     }

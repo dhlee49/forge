@@ -7,6 +7,7 @@ import forge.gamemodes.net.client.FGameClient;
 import forge.gamemodes.net.event.IdentifiableNetEvent;
 import forge.gamemodes.net.event.MessageEvent;
 import forge.gamemodes.net.event.NetEvent;
+import forge.gamemodes.net.server.CommanderServerGameLobby;
 import forge.gamemodes.net.server.FServerManager;
 import forge.gamemodes.net.server.ServerGameLobby;
 import forge.localinstance.properties.ForgeNetPreferences;
@@ -103,6 +104,83 @@ public class NetConnectUtil {
         view.update(true);
 
         return new ChatMessage(null, Localizer.getInstance().getMessage("lblHostingPortOnN", String.valueOf(port)));
+    }
+
+    public static HostCommanderResult hostCommander(final IOnlineLobby onlineLobby, final IOnlineChatInterface chatInterface) {
+        final int port = FModel.getNetPreferences().getPrefInt(ForgeNetPreferences.FNetPref.NET_PORT);
+        final FServerManager server = FServerManager.getInstance();
+        final CommanderServerGameLobby lobby = new CommanderServerGameLobby();
+        final ILobbyView view = onlineLobby.setLobby(lobby);
+
+        server.startServer(port);
+        server.setLobby(lobby);
+
+        lobby.setListener(new IUpdateable() {
+            @Override
+            public void update(final boolean fullUpdate) {
+                view.update(fullUpdate);
+                server.updateLobbyState();
+            }
+            @Override
+            public void update(final int slot, final LobbySlotType type) { return; }
+        });
+        view.setPlayerChangeListener((index, event) -> {
+            server.updateSlot(index, event);
+            server.updateLobbyState();
+        });
+
+        server.setLobbyListener(new ILobbyListener() {
+            @Override
+            public void update(final GameLobbyData state, final int slot) {
+            }
+            @Override
+            public void message(final String source, final String message) {
+                chatInterface.addMessage(new ChatMessage(source, message));
+            }
+            @Override
+            public void close() {
+            }
+            @Override
+            public ClientGameLobby getLobby() {
+                return null;
+            }
+        });
+        chatInterface.setGameClient(new IRemote() {
+            @Override
+            public void send(final NetEvent event) {
+                if (event instanceof MessageEvent) {
+                    final MessageEvent message = (MessageEvent) event;
+                    if (server.handleCommand(message.getMessage())) {
+                        return;
+                    }
+                    chatInterface.addMessage(new ChatMessage(message.getSource(), message.getMessage()));
+                    server.broadcast(event);
+                }
+            }
+            @Override
+            public Object sendAndWait(final IdentifiableNetEvent event) {
+                send(event);
+                return null;
+            }
+        });
+
+        view.update(true);
+
+        final ChatMessage chatMessage = new ChatMessage(null, Localizer.getInstance().getMessage("lblHostingPortOnN", String.valueOf(port)));
+        return new HostCommanderResult(chatMessage, lobby);
+    }
+
+    public static class HostCommanderResult {
+        private final ChatMessage chatMessage;
+        private final CommanderServerGameLobby lobby;
+
+        public HostCommanderResult(final ChatMessage chatMessage, final CommanderServerGameLobby lobby) {
+            this.chatMessage = chatMessage;
+            this.lobby = lobby;
+        }
+
+        public ChatMessage getChatMessage() { return chatMessage; }
+        public CommanderServerGameLobby getLobby() { return lobby; }
     }
 
     public static void copyHostedServerUrl() {

@@ -67,8 +67,14 @@ public enum VSubmenuOnlineLobby implements IVSubmenu<CSubmenuOnlineLobby>, IOnli
             final FButton btnConnect = new FButton(Localizer.getInstance().getMessage("lblConnectToServer"));
             btnConnect.setFont(FSkin.getRelativeFont(20));
             btnConnect.addActionListener(e -> getLayoutControl().connectToServer());
-            container.setLayout(new MigLayout("insets 0, gap 0, ax center, ay center"));
+
+            final FButton btnHostCommander = new FButton("Host Commander (4P)");
+            btnHostCommander.setFont(FSkin.getRelativeFont(20));
+            btnHostCommander.addActionListener(e -> getLayoutControl().hostCommander());
+
+            container.setLayout(new MigLayout("insets 0, gap 0, ax center, ay center, wrap 1"));
             container.add(btnConnect, "w 300!, h 75!");
+            container.add(btnHostCommander, "w 300!, h 75!, gaptop 10");
 
             if (container.isShowing()) {
                 container.validate();
